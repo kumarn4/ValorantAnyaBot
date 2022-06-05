@@ -2,7 +2,7 @@
 Valorant のストアの内容出すDiscordBot。
 ちなみにアーニャなんも関係ない。
 
-## Usage
+## Usages
 - ```!r [Username] [Password]``` </br>
       RiotGamesアカウントにログインするための登録コマンド</br></br>
       
@@ -15,3 +15,8 @@ Valorant のストアの内容出すDiscordBot。
       
 - ```!n```　　　　　　　　　　　</br>
       ナイトマーケット、出す。</br></br>
+
+#Libraries
+
+- [Discord.Net](https://github.com/discord-net/Discord.Net)
+- [ValNet](https://github.com/HeyM1ke/ValNet)
