@@ -16,7 +16,7 @@ Valorant のストアの内容出すDiscordBot。
 - ```!n```　　　　　　　　　　　</br>
       ナイトマーケット、出す。</br></br>
 
-#Libraries
+# Libraries
 
 - [Discord.Net](https://github.com/discord-net/Discord.Net)
 - [ValNet](https://github.com/HeyM1ke/ValNet)
