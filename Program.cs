@@ -3,8 +3,10 @@ using Discord.Commands;
 using Discord.WebSocket;
 using LoggLibrary;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Reflection;
-using ValorantAnyaBot.Data;
+using System.Threading.Tasks;
+using ValorantAnyaBot.Services;
 
 namespace ValorantAnyaBot
 {
@@ -16,6 +18,7 @@ namespace ValorantAnyaBot
         public static Logger Logger;
         public static UserService User;
         public static ValorantSkinTierService Tier;
+        public static AutomatedTaskService Auto;
 
         static void Main(string[] args)
         {
@@ -30,6 +33,7 @@ namespace ValorantAnyaBot
             Logger = new Logger("Bot");
             User = new UserService();
             Tier = new ValorantSkinTierService();
+            Auto = new AutomatedTaskService();
 
             Client.MessageReceived += OnClientMessageReceived;
             Client.Log += OnClientLog;
@@ -79,7 +83,5 @@ namespace ValorantAnyaBot
             }
             return Task.CompletedTask;
         }
-
-        
     }
 }

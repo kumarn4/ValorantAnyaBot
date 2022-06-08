@@ -1,14 +1,9 @@
 ﻿using Discord;
 using Discord.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using ValNet;
 using ValNet.Objects.Authentication;
-using ValorantAnyaBot.Data;
-using static ValNet.Objects.Store.NightMarket;
+using ValorantAnyaBot.Services;
 
 namespace ValorantAnyaBot.Command
 {
@@ -52,7 +47,7 @@ namespace ValorantAnyaBot.Command
                 password = args[1],
             };
             RiotUser user = new RiotUser(logindata);
-            AuthenticationStatus res = 
+            AuthenticationStatus res =
                 await user.Authentication.AuthenticateWithCloud();
 
             if (!res.bIsAuthComplete)
@@ -84,7 +79,7 @@ namespace ValorantAnyaBot.Command
             await Context.Channel.TriggerTypingAsync();
 
             UserService.UserData u = Program.User.Get(Context.User.Id);
-            if(u == null)
+            if (u == null)
             {
                 EmbedBuilder ebb = new EmbedBuilder()
                     .WithTitle("エラー")
@@ -110,149 +105,67 @@ namespace ValorantAnyaBot.Command
         public async Task ShowOffers()
         {
             await Context.Channel.TriggerTypingAsync();
-
-            UserService.UserData u = Program.User.Get(Context.User.Id);
-
-            if (u == null)
-            {
-                EmbedBuilder ebb = new EmbedBuilder()
-                    .WithTitle("エラー")
-                    .WithDescription(
-                        $"{Context.User.Username} は登録されていません\n" +
-                        $"**`!r [Username] [Password]`**")
-                    .WithColor(Color.Red);
-                await ReplyAsync(embed: ebb.Build());
-                return;
-            }
-
-            RiotLoginData logindata = new RiotLoginData()
-            {
-                username = Program.User.GetDecryptedUsername(u.encrypted_username),
-                password = Program.User.GetDecryptedPassword(u.encrypted_password),
-            };
-            RiotUser user = new RiotUser(logindata);
-            var res = await user.Authentication.AuthenticateWithCloud();
-
-            if (!res.bIsAuthComplete)
-            {
-                EmbedBuilder ebb = new EmbedBuilder()
-                    .WithTitle("エラー")
-                    .WithDescription(
-                        $" ユーザーネーム : {logindata.username} , " +
-                        $"パスワード : {logindata.password} のログインに失敗しました。")
-                    .WithColor(Color.Red);
-                await ReplyAsync(embed: ebb.Build());
-                return;
-            }
-
-            List<Embed> es = new List<Embed>();
-            await user.Store.GetPlayerStore();
-            List<string> offers = user.Store.PlayerStore.SkinsPanelLayout.SingleItemOffers;
-
-            foreach (string item in offers)
-            {
-                dynamic v = ValorantApiData.GetSkin(item);
-                EmbedBuilder eb = new EmbedBuilder()
-                    .WithTitle(
-                        ((string)v.data.GetProperty("displayName").GetRawText())
-                            .Replace("\"", ""));
-                if (!string.IsNullOrEmpty(v.data.GetProperty("streamedVideo").GetString()))
-                {
-                    eb.WithDescription(
-                        $"[動画]({v.data.GetProperty("streamedVideo").GetString()})");
-                }
-                eb.WithImageUrl(v.data.GetProperty("displayIcon").GetString());
-                eb.WithColor(Program.Tier.GetTierColor(v.data.GetProperty("displayName").GetString()));
-                es.Add(eb.Build());
-            }
-
-            if (user.Store.PlayerStore.BonusStore != null)
-            {
-                EmbedBuilder eb = new EmbedBuilder()
-                    .WithTitle("ナイトマーケット開催中")
-                    .WithColor(Color.Purple)
-                    .WithDescription("**`!n`** コマンドでナイトマーケットを確認できます");
-                es.Add(eb.Build());
-            }
-
-            await ReplyAsync(embeds: es.ToArray());
-            return;
+            await ValorantOfferService.ShowOfferEmbedsByCommand(Context);
         }
 
         [Command("n")]
         public async Task ShowNightMarket()
         {
             await Context.Channel.TriggerTypingAsync();
+            await ValorantOfferService.ShowNightMarketOfferEmbedsByCommand(Context);
+        }
 
-            UserService.UserData u = Program.User.Get(Context.User.Id);
-
-            if (u == null)
+        [Command("a")]
+        public async Task SubscribeAutomateTask()
+        {
+            if (!Program.Auto.Add(this.Context.User.Id))
             {
                 EmbedBuilder ebb = new EmbedBuilder()
                     .WithTitle("エラー")
                     .WithDescription(
-                        $"{Context.User.Username} は登録されていません\n" +
-                        $"**`!r [Username] [Password]`**")
+                        $"{Context.User.Username} はすでに登録されています\n")
                     .WithColor(Color.Red);
                 await ReplyAsync(embed: ebb.Build());
                 return;
             }
-
-            RiotLoginData logindata = new RiotLoginData()
-            {
-                username = Program.User.GetDecryptedUsername(u.encrypted_username),
-                password = Program.User.GetDecryptedPassword(u.encrypted_password),
-            };
-            RiotUser user = new RiotUser(logindata);
-            var res = await user.Authentication.AuthenticateWithCloud();
-
-            if (!res.bIsAuthComplete)
-            {
-                EmbedBuilder ebb = new EmbedBuilder()
-                    .WithTitle("エラー")
+            EmbedBuilder eb = new EmbedBuilder()
+                    .WithTitle("👍👍👍👍👍🥜")
                     .WithDescription(
-                        $" ユーザーネーム : {logindata.username} , " +
-                        $"パスワード : {logindata.password} のログインに失敗しました。")
-                    .WithColor(Color.Red);
-                await ReplyAsync(embed: ebb.Build());
-                return;
-            }
-
-            await user.Store.GetPlayerStore();
-            
-            if (user.Store.PlayerStore.BonusStore == null)
-            {
-                EmbedBuilder ebb = new EmbedBuilder()
-                    .WithTitle("エラー")
-                    .WithDescription(
-                        "現在、ナイトマーケットは開催されていない可能性があります。")
-                    .WithColor(Color.Red);
-                await ReplyAsync(embed: ebb.Build());
-                return;
-            }
-
-            List<Embed> es = new List<Embed>();
-            List<NightMarketOffer> offers = user.Store.PlayerStore.BonusStore.NightMarketOffers;
-
-            foreach (var item in offers)
-            {
-                dynamic v = ValorantApiData.GetSkin(item.Offer.OfferID);
-                EmbedBuilder eb = new EmbedBuilder()
-                    .WithTitle(
-                        ((string)v.data.GetProperty("displayName").GetRawText())
-                            .Replace("\"", ""));
-                eb.WithDescription($"{item.Offer.Cost.ValorantPointCost}\n");
-                if (!string.IsNullOrEmpty(v.data.GetProperty("streamedVideo").GetString()))
-                {
-                    eb.Description += 
-                        $"[動画]({v.data.GetProperty("streamedVideo").GetString()})";
-                }
-                eb.WithImageUrl(v.data.GetProperty("displayIcon").GetString());
-                eb.WithColor(Color.Green);
-                es.Add(eb.Build());
-            }
-            await ReplyAsync(embeds: es.ToArray());
+                        $"{Context.User.Username} を自動送信タスクに登録しました\n")
+                    .WithColor(Color.Green);
+            await ReplyAsync(embed: eb.Build());
             return;
+        }
+
+        [Command("l")]
+        public async Task ShowCommandList()
+        {
+            EmbedBuilder eb = new EmbedBuilder()
+                .WithTitle("🥜Command List🥜")
+                .AddField(
+                    "**!r** ``Username`` ``Password``",
+                    "RiotGamesアカウントの Username と Password をBotに登録します\n" +
+                    "- 登録する情報はすべて**暗号化**して保存します\n" +
+                    "- **このコマンドはDM専用です**\n")
+                .AddField(
+                    "**!me**",
+                    "登録したRiotGamesアカウントのログイン情報を開示します\n" +
+                    "- **このコマンドはDM専用です**\n")
+                .AddField(
+                    "**!s**",
+                    "ストアを表示します")
+                .AddField(
+                    "**!n**",
+                    "ナイトマーケットのオファーを表示します")
+                .AddField(
+                    "**!a**",
+                    "- **``重要`` このコマンドはテスト段階です**\n" +
+                    "自動送信タスクに登録します\n" +
+                    "これに登録すると毎日AM9:00ごろに自動的にDMにストアのオファーを送信します")
+                .WithColor(Color.Blue);
+
+            await ReplyAsync(embed: eb.Build());
+
         }
     }
 }
